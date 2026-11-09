@@ -64,6 +64,46 @@ public sealed class TopicService(LibraryStore store)
         });
     }
 
+    public TopicUsageResponse? GetUsage(int id) =>
+        store.Read(snapshot =>
+        {
+            var topic = snapshot.Topics.FirstOrDefault(item => item.Id == id);
+            if (topic is null)
+            {
+                return null;
+            }
+
+            var books = new List<TopicUsageBookResponse>();
+            var totalReferences = 0;
+
+            foreach (var book in snapshot.Books.OrderBy(item => item.Id))
+            {
+                var references = book.Contents
+                    .Where(reference => reference.TopicId == id)
+                    .OrderBy(reference => reference.Position)
+                    .Select(reference => new TopicUsageReferenceResponse(
+                        reference.ReferenceId,
+                        reference.Level,
+                        reference.Position))
+                    .ToList();
+
+                if (references.Count == 0)
+                {
+                    continue;
+                }
+
+                totalReferences += references.Count;
+                books.Add(new TopicUsageBookResponse(book.Id, book.Title, references));
+            }
+
+            return new TopicUsageResponse(
+                topic.Id,
+                topic.Title,
+                books,
+                totalReferences,
+                books.Count);
+        });
+
     private static TopicResponse ToResponse(Topic topic) =>
         new(
             topic.Id,

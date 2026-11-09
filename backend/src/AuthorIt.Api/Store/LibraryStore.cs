@@ -138,6 +138,61 @@ public sealed class LibraryStore
             topic.Version++;
             return CloneTopic(topic);
         }
+
+        public bool TopicExists(int topicId) =>
+            _store._topics.ContainsKey(topicId);
+
+        public bool TryGetTopicTitle(int topicId, out string title)
+        {
+            if (_store._topics.TryGetValue(topicId, out var topic))
+            {
+                title = topic.Title;
+                return true;
+            }
+
+            title = string.Empty;
+            return false;
+        }
+
+        public bool TryGetBook(int bookId, out Book book) =>
+            _store._books.TryGetValue(bookId, out book!);
+
+        public Book AddBook(string title, string? description, DateTimeOffset now)
+        {
+            var book = new Book
+            {
+                Id = _store._nextBookId++,
+                Title = title,
+                Description = description,
+                CreatedAt = now,
+                Contents = []
+            };
+            _store._books[book.Id] = book;
+            return CloneBook(book);
+        }
+
+        public int AllocateReferenceId() =>
+            _store._nextReferenceId++;
+
+        public Book ReplaceBookContents(int bookId, List<BookReference> contents)
+        {
+            if (!_store._books.TryGetValue(bookId, out var book))
+            {
+                throw new InvalidOperationException($"Book {bookId} was not found.");
+            }
+
+            book.Contents = contents
+                .Select(reference => new BookReference
+                {
+                    ReferenceId = reference.ReferenceId,
+                    TopicId = reference.TopicId,
+                    Level = reference.Level,
+                    Position = reference.Position
+                })
+                .ToList();
+
+            return CloneBook(book);
+        }
     }
 }
 
