@@ -1,4 +1,9 @@
-import type { CreateTopicRequest, Topic, UpdateTopicRequest } from '../types/api'
+import type {
+  CreateTopicRequest,
+  Topic,
+  TopicUsage,
+  UpdateTopicRequest,
+} from '../types/api'
 import { apiFetch } from './client'
 
 export function listTopics(): Promise<Topic[]> {
@@ -24,4 +29,8 @@ export function updateTopic(
     method: 'PUT',
     body: payload,
   })
+}
+
+export function getTopicUsage(id: number): Promise<TopicUsage> {
+  return apiFetch<TopicUsage>(`/topics/${id}/usage`)
 }

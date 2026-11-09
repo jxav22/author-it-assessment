@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { queryKeys } from '../api/queryKeys'
 import { createTopic, listTopics } from '../api/topics'
+import { parseTags } from '../lib/tags'
 import type { Topic } from '../types/api'
 
 function formatUpdatedAt(iso: string): string {
@@ -27,13 +28,6 @@ function matchesFilter(topic: Topic, filter: string): boolean {
     return true
   }
   return topic.tags.some((tag) => tag.toLowerCase().includes(needle))
-}
-
-function parseTags(raw: string): string[] {
-  return raw
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter(Boolean)
 }
 
 export function TopicLibraryPage() {
