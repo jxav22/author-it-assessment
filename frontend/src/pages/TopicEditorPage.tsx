@@ -5,19 +5,11 @@ import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { queryKeys } from '../api/queryKeys'
 import { getTopic, getTopicUsage, updateTopic } from '../api/topics'
+import { AppNav } from '../components/AppNav'
+import { errorMessage } from '../lib/errors'
 import { fieldErrors } from '../lib/fieldErrors'
 import { formatTags, parseTags, tagsEqual } from '../lib/tags'
 import type { Topic } from '../types/api'
-
-function errorMessage(error: unknown, fallback: string): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (error instanceof Error) {
-    return error.message
-  }
-  return fallback
-}
 
 function EditorShell({
   title,
@@ -28,6 +20,7 @@ function EditorShell({
 }) {
   return (
     <main className="page">
+      <AppNav />
       <header className="page-header">
         <p>
           <Link to="/">← Topic library</Link>
@@ -187,6 +180,7 @@ function TopicEditorForm({ initialTopic }: { initialTopic: Topic }) {
 
   return (
     <main className="page">
+      <AppNav />
       <header className="page-header">
         <p>
           <Link to="/">← Topic library</Link>
