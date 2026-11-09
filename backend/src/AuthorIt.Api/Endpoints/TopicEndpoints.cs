@@ -11,6 +11,7 @@ public static class TopicEndpoints
 
         group.MapGet("/", GetTopics);
         group.MapGet("/{id:int}", GetTopic);
+        group.MapGet("/{id:int}/usage", GetTopicUsage);
         group.MapPost("/", CreateTopic);
         group.MapPut("/{id:int}", UpdateTopic);
 
@@ -30,6 +31,18 @@ public static class TopicEndpoints
                 detail: $"Topic {id} was not found.",
                 type: "https://tools.ietf.org/html/rfc9110#section-15.5.5")
             : Results.Ok(topic);
+    }
+
+    private static IResult GetTopicUsage(int id, TopicService topics)
+    {
+        var usage = topics.GetUsage(id);
+        return usage is null
+            ? Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Not Found",
+                detail: $"Topic {id} was not found.",
+                type: "https://tools.ietf.org/html/rfc9110#section-15.5.5")
+            : Results.Ok(usage);
     }
 
     private static IResult CreateTopic(CreateTopicRequest request, TopicService topics)

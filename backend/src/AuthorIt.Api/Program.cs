@@ -11,6 +11,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddSingleton<LibraryStore>();
 builder.Services.AddSingleton<TopicService>();
+builder.Services.AddSingleton<BookService>();
 
 builder.Services.AddCors(options =>
 {
@@ -28,6 +29,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapTopicEndpoints();
+app.MapBookEndpoints();
 
 app.Run();
 
