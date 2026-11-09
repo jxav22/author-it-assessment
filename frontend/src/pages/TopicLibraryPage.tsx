@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { queryKeys } from '../api/queryKeys'
 import { createTopic, listTopics } from '../api/topics'
+import { AppNav } from '../components/AppNav'
 import { parseTags } from '../lib/tags'
 import type { Topic } from '../types/api'
 
@@ -79,6 +80,7 @@ export function TopicLibraryPage() {
 
   return (
     <main className="page">
+      <AppNav />
       <header className="page-header">
         <h1>Topic library</h1>
         <p className="muted">Browse and create reusable Topics.</p>
