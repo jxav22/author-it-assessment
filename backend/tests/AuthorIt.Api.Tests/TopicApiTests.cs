@@ -6,19 +6,23 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace AuthorIt.Api.Tests;
 
-public sealed class TopicApiTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class TopicApiTests : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
+    // A factory per test gives every test its own freshly seeded singleton LibraryStore.
+    private readonly WebApplicationFactory<Program> _factory = new();
     private readonly HttpClient _client;
 
-    public TopicApiTests(WebApplicationFactory<Program> factory)
+    public TopicApiTests()
     {
-        _client = factory.CreateClient();
+        _client = _factory.CreateClient();
     }
+
+    public void Dispose() => _factory.Dispose();
 
     [Fact]
     public async Task GetTopics_ReturnsSeededTopics()
@@ -31,7 +35,7 @@ public sealed class TopicApiTests : IClassFixture<WebApplicationFactory<Program>
         Assert.NotNull(topics);
         Assert.Contains(topics, topic => topic.Id == 1 && topic.Title == "Introduction to Author-it");
         Assert.Contains(topics, topic => topic.Id == 3 && topic.Tags.Contains("library"));
-        Assert.Equal(5, topics.Count(topic => topic.Id is >= 1 and <= 5));
+        Assert.Equal(new[] { 1, 2, 3, 4, 5 }, topics.Select(topic => topic.Id).ToArray());
     }
 
     [Fact]
