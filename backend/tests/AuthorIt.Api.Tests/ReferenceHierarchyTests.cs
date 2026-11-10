@@ -6,19 +6,23 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace AuthorIt.Api.Tests;
 
-public sealed class ReferenceHierarchyTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class ReferenceHierarchyTests : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
+    // A factory per test gives every test its own freshly seeded singleton LibraryStore.
+    private readonly WebApplicationFactory<Program> _factory = new();
     private readonly HttpClient _client;
 
-    public ReferenceHierarchyTests(WebApplicationFactory<Program> factory)
+    public ReferenceHierarchyTests()
     {
-        _client = factory.CreateClient();
+        _client = _factory.CreateClient();
     }
+
+    public void Dispose() => _factory.Dispose();
 
     [Fact]
     public async Task AddReference_InvalidBecauseOfFollowingEntry_LeavesOutlineUnchanged()
