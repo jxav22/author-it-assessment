@@ -14,7 +14,15 @@ import { AppNav } from '../components/AppNav'
 import { errorMessage } from '../lib/errors'
 import { fieldErrors } from '../lib/fieldErrors'
 
-function Shell({ children }: { children: ReactNode }) {
+function Shell({
+  title = 'Book outline',
+  description,
+  children,
+}: {
+  title?: string
+  description?: string | null
+  children: ReactNode
+}) {
   return (
     <main className="page">
       <AppNav />
@@ -22,7 +30,13 @@ function Shell({ children }: { children: ReactNode }) {
         <p>
           <Link to="/books">← Books</Link>
         </p>
-        <h1>Book outline</h1>
+        <h1>{title}</h1>
+        {description !== undefined &&
+          (description ? (
+            <p className="muted">{description}</p>
+          ) : (
+            <p className="muted">No description.</p>
+          ))}
       </header>
       {children}
     </main>
@@ -34,18 +48,6 @@ export function BookOutlinePage() {
   const bookId = Number(idParam)
   const bookIdValid = Number.isInteger(bookId) && bookId > 0
 
-  const bookQuery = useQuery({
-    queryKey: queryKeys.books.detail(bookId),
-    queryFn: () => getBook(bookId),
-    enabled: bookIdValid,
-    retry: (failureCount, error) => {
-      if (error instanceof ApiError && error.status === 404) {
-        return false
-      }
-      return failureCount < 1
-    },
-  })
-
   if (!bookIdValid) {
     return (
       <Shell>
@@ -56,36 +58,7 @@ export function BookOutlinePage() {
     )
   }
 
-  if (bookQuery.isLoading) {
-    return (
-      <Shell>
-        <p className="muted">Loading book…</p>
-      </Shell>
-    )
-  }
-
-  if (bookQuery.isError || !bookQuery.data) {
-    const notFound =
-      bookQuery.error instanceof ApiError && bookQuery.error.status === 404
-    return (
-      <Shell>
-        <div className="error" role="alert">
-          <p>
-            {notFound
-              ? `Book ${bookId} was not found.`
-              : errorMessage(bookQuery.error, 'Failed to load book')}
-          </p>
-          {!notFound && (
-            <button type="button" onClick={() => void bookQuery.refetch()}>
-              Retry
-            </button>
-          )}
-        </div>
-      </Shell>
-    )
-  }
-
-  return <BookOutlineView key={bookQuery.data.id} bookId={bookQuery.data.id} />
+  return <BookOutlineView key={bookId} bookId={bookId} />
 }
 
 function BookOutlineView({ bookId }: { bookId: number }) {
@@ -98,6 +71,12 @@ function BookOutlineView({ bookId }: { bookId: number }) {
   const bookQuery = useQuery({
     queryKey: queryKeys.books.detail(bookId),
     queryFn: () => getBook(bookId),
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status === 404) {
+        return false
+      }
+      return failureCount < 1
+    },
   })
 
   const topicsQuery = useQuery({
@@ -149,8 +128,38 @@ function BookOutlineView({ bookId }: { bookId: number }) {
     },
   })
 
+  if (bookQuery.isLoading) {
+    return (
+      <Shell>
+        <p className="muted">Loading book…</p>
+      </Shell>
+    )
+  }
+
+  // Keep outline UI when a later refetch fails but cached data remains.
+  if (!bookQuery.data) {
+    const notFound =
+      bookQuery.error instanceof ApiError && bookQuery.error.status === 404
+    return (
+      <Shell>
+        <div className="error" role="alert">
+          <p>
+            {notFound
+              ? `Book ${bookId} was not found.`
+              : errorMessage(bookQuery.error, 'Failed to load book')}
+          </p>
+          {!notFound && (
+            <button type="button" onClick={() => void bookQuery.refetch()}>
+              Retry
+            </button>
+          )}
+        </div>
+      </Shell>
+    )
+  }
+
   const book = bookQuery.data
-  const contents = book?.contents ?? []
+  const contents = book.contents
   const appendPosition = contents.length + 1
 
   const addError =
@@ -158,10 +167,9 @@ function BookOutlineView({ bookId }: { bookId: number }) {
   const topicIdErrors = fieldErrors(addError?.problem.errors, 'topicId')
   const levelErrors = fieldErrors(addError?.problem.errors, 'level')
   const positionErrors = fieldErrors(addError?.problem.errors, 'position')
-  const generalAddError =
-    addMutation.isError
-      ? errorMessage(addMutation.error, 'Failed to add reference')
-      : null
+  const generalAddError = addMutation.isError
+    ? errorMessage(addMutation.error, 'Failed to add reference')
+    : null
 
   function handleAdd(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -177,50 +185,8 @@ function BookOutlineView({ bookId }: { bookId: number }) {
     })
   }
 
-  if (bookQuery.isLoading && !book) {
-    return (
-      <Shell>
-        <p className="muted">Loading book…</p>
-      </Shell>
-    )
-  }
-
-  if ((bookQuery.isError || !book) && !bookQuery.isFetching) {
-    return (
-      <Shell>
-        <div className="error" role="alert">
-          <p>{errorMessage(bookQuery.error, 'Failed to load book')}</p>
-          <button type="button" onClick={() => void bookQuery.refetch()}>
-            Retry
-          </button>
-        </div>
-      </Shell>
-    )
-  }
-
-  if (!book) {
-    return (
-      <Shell>
-        <p className="muted">Loading book…</p>
-      </Shell>
-    )
-  }
-
   return (
-    <main className="page">
-      <AppNav />
-      <header className="page-header">
-        <p>
-          <Link to="/books">← Books</Link>
-        </p>
-        <h1>{book.title}</h1>
-        {book.description ? (
-          <p className="muted">{book.description}</p>
-        ) : (
-          <p className="muted">No description.</p>
-        )}
-      </header>
-
+    <Shell title={book.title} description={book.description}>
       <section className="panel" aria-labelledby="outline-heading">
         <h2 id="outline-heading">Outline</h2>
 
@@ -246,6 +212,7 @@ function BookOutlineView({ bookId }: { bookId: number }) {
                   <button
                     type="button"
                     className="button-secondary"
+                    aria-label={`Remove reference ${entry.referenceId}: ${entry.topicTitle}`}
                     disabled={removeMutation.isPending}
                     onClick={() => {
                       setRemovingId(entry.referenceId)
@@ -415,6 +382,6 @@ function BookOutlineView({ bookId }: { bookId: number }) {
           </button>
         </form>
       </section>
-    </main>
+    </Shell>
   )
 }
