@@ -49,32 +49,34 @@ export function BookListPage() {
         )}
 
         {booksQuery.isSuccess && booksQuery.data.length > 0 && (
-          <table className="topic-table">
-            <thead>
-              <tr>
-                <th scope="col">Title</th>
-                <th scope="col">Description</th>
-                <th scope="col">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {booksQuery.data.map((book) => (
-                <tr key={book.id}>
-                  <td>
-                    <Link to={`/books/${book.id}`}>{book.title}</Link>
-                  </td>
-                  <td>
-                    {book.description ? (
-                      book.description
-                    ) : (
-                      <span className="muted">—</span>
-                    )}
-                  </td>
-                  <td>{formatCreatedAt(book.createdAt)}</td>
+          <div className="table-wrap">
+            <table className="topic-table">
+              <thead>
+                <tr>
+                  <th scope="col">Title</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Created</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {booksQuery.data.map((book) => (
+                  <tr key={book.id}>
+                    <td>
+                      <Link to={`/books/${book.id}`}>{book.title}</Link>
+                    </td>
+                    <td>
+                      {book.description ? (
+                        book.description
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </td>
+                    <td>{formatCreatedAt(book.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </main>

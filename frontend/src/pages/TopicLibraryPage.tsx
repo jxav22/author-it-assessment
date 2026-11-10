@@ -184,32 +184,34 @@ export function TopicLibraryPage() {
           )}
 
         {filteredTopics.length > 0 && (
-          <table className="topic-table">
-            <thead>
-              <tr>
-                <th scope="col">Title</th>
-                <th scope="col">Tags</th>
-                <th scope="col">Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTopics.map((topic) => (
-                <tr key={topic.id}>
-                  <td>
-                    <Link to={`/topics/${topic.id}`}>{topic.title}</Link>
-                  </td>
-                  <td>
-                    {topic.tags.length === 0 ? (
-                      <span className="muted">—</span>
-                    ) : (
-                      topic.tags.join(', ')
-                    )}
-                  </td>
-                  <td>{formatUpdatedAt(topic.updatedAt)}</td>
+          <div className="table-wrap">
+            <table className="topic-table">
+              <thead>
+                <tr>
+                  <th scope="col">Title</th>
+                  <th scope="col">Tags</th>
+                  <th scope="col">Updated</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredTopics.map((topic) => (
+                  <tr key={topic.id}>
+                    <td>
+                      <Link to={`/topics/${topic.id}`}>{topic.title}</Link>
+                    </td>
+                    <td>
+                      {topic.tags.length === 0 ? (
+                        <span className="muted">—</span>
+                      ) : (
+                        topic.tags.join(', ')
+                      )}
+                    </td>
+                    <td>{formatUpdatedAt(topic.updatedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </main>
