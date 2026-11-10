@@ -174,9 +174,12 @@ function TopicEditorForm({ initialTopic }: { initialTopic: Topic }) {
     setIsReloading(true)
     setReloadError(null)
     try {
+      // Force a network read: default staleTime would otherwise return cache
+      // and "Reload latest" would re-apply the same stale baseline.
       const topic = await queryClient.fetchQuery({
         queryKey: queryKeys.topics.detail(topicId),
         queryFn: () => getTopic(topicId),
+        staleTime: 0,
       })
       applyTopic(topic)
       saveMutation.reset()
