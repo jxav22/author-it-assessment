@@ -67,7 +67,9 @@ export function TopicEditorPage() {
     )
   }
 
-  if (topicQuery.isError || !topicQuery.data) {
+  // Keep the form mounted when a later refetch fails but cached data remains,
+  // so local drafts are not destroyed by Reload / invalidation errors.
+  if (!topicQuery.data) {
     const notFound =
       topicQuery.error instanceof ApiError && topicQuery.error.status === 404
     return (
@@ -101,11 +103,8 @@ function TopicEditorForm({ initialTopic }: { initialTopic: Topic }) {
   const [title, setTitle] = useState(initialTopic.title)
   const [body, setBody] = useState(initialTopic.body)
   const [tagsInput, setTagsInput] = useState(formatTags(initialTopic.tags))
-
-  const topicQuery = useQuery({
-    queryKey: queryKeys.topics.detail(topicId),
-    queryFn: () => getTopic(topicId),
-  })
+  const [isReloading, setIsReloading] = useState(false)
+  const [reloadError, setReloadError] = useState<string | null>(null)
 
   const usageQuery = useQuery({
     queryKey: queryKeys.topics.usage(topicId),
@@ -129,16 +128,30 @@ function TopicEditorForm({ initialTopic }: { initialTopic: Topic }) {
     }) => updateTopic(topicId, payload),
     onSuccess: async (topic) => {
       applyTopic(topic)
+      setReloadError(null)
       queryClient.setQueryData(queryKeys.topics.detail(topic.id), topic)
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.topics.all }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.topics.all,
+          exact: true,
+        }),
         queryClient.invalidateQueries({
           queryKey: queryKeys.topics.usage(topic.id),
         }),
-        queryClient.invalidateQueries({ queryKey: ['books'] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.books.all }),
       ])
     },
   })
+
+  function clearNonConflictSaveError() {
+    const error = saveMutation.error
+    if (
+      saveMutation.isError &&
+      !(error instanceof ApiError && error.status === 409)
+    ) {
+      saveMutation.reset()
+    }
+  }
 
   const draftTags = parseTags(tagsInput)
   const isDirty =
@@ -158,18 +171,29 @@ function TopicEditorForm({ initialTopic }: { initialTopic: Topic }) {
       : null
 
   async function reloadLatest() {
-    const result = await topicQuery.refetch()
-    if (result.data) {
-      applyTopic(result.data)
+    setIsReloading(true)
+    setReloadError(null)
+    try {
+      const topic = await queryClient.fetchQuery({
+        queryKey: queryKeys.topics.detail(topicId),
+        queryFn: () => getTopic(topicId),
+      })
+      applyTopic(topic)
       saveMutation.reset()
       await queryClient.invalidateQueries({
         queryKey: queryKeys.topics.usage(topicId),
       })
+    } catch (error) {
+      // Leave the draft and conflict UI intact; only report the reload failure.
+      setReloadError(errorMessage(error, 'Failed to reload latest topic'))
+    } finally {
+      setIsReloading(false)
     }
   }
 
   function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setReloadError(null)
     saveMutation.mutate({
       title: title.trim(),
       body,
@@ -264,9 +288,7 @@ function TopicEditorForm({ initialTopic }: { initialTopic: Topic }) {
               value={title}
               onChange={(event) => {
                 setTitle(event.target.value)
-                if (saveMutation.isError) {
-                  saveMutation.reset()
-                }
+                clearNonConflictSaveError()
               }}
               maxLength={200}
               required
@@ -286,9 +308,7 @@ function TopicEditorForm({ initialTopic }: { initialTopic: Topic }) {
               value={body}
               onChange={(event) => {
                 setBody(event.target.value)
-                if (saveMutation.isError) {
-                  saveMutation.reset()
-                }
+                clearNonConflictSaveError()
               }}
               rows={12}
               disabled={saveMutation.isPending}
@@ -308,9 +328,7 @@ function TopicEditorForm({ initialTopic }: { initialTopic: Topic }) {
               value={tagsInput}
               onChange={(event) => {
                 setTagsInput(event.target.value)
-                if (saveMutation.isError) {
-                  saveMutation.reset()
-                }
+                clearNonConflictSaveError()
               }}
               placeholder="comma-separated"
               disabled={saveMutation.isPending}
@@ -331,12 +349,13 @@ function TopicEditorForm({ initialTopic }: { initialTopic: Topic }) {
                 and try again after reviewing.
               </p>
               <p>{saveError.message}</p>
+              {reloadError && <p>{reloadError}</p>}
               <button
                 type="button"
                 onClick={() => void reloadLatest()}
-                disabled={topicQuery.isFetching}
+                disabled={isReloading}
               >
-                {topicQuery.isFetching ? 'Reloading…' : 'Reload latest'}
+                {isReloading ? 'Reloading…' : 'Reload latest'}
               </button>
             </div>
           )}
@@ -376,6 +395,7 @@ function TopicEditorForm({ initialTopic }: { initialTopic: Topic }) {
                 disabled={saveMutation.isPending}
                 onClick={() => {
                   applyTopic(baseline)
+                  setReloadError(null)
                   saveMutation.reset()
                 }}
               >
