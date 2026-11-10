@@ -18,7 +18,6 @@
 
 body {
   margin: 0;
-  min-width: 960px;
 }
 
 a {
@@ -145,6 +144,7 @@ textarea {
 
 .list-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
   gap: 1rem;
@@ -156,7 +156,14 @@ textarea {
 }
 
 .filter {
-  min-width: 260px;
+  flex: 1 1 12rem;
+  min-width: 0;
+  max-width: 20rem;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
 }
 
 .topic-table {
