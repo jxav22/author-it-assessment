@@ -30,7 +30,7 @@ npm run dev
 
 CORS (Development only) allows `http://localhost:5173`, so use `localhost` rather than `127.0.0.1`; the frontend's API address comes from `VITE_API_BASE_URL` (default `http://localhost:5080`).
 
-Data is in memory and reseeded on every start (5 Topics, 3 Books).
+Data is in memory and reseeded on every start (5 topics, 3 books).
 
 ## 2. Design decisions and trade-offs
 
@@ -50,17 +50,17 @@ The editor keeps what the author is typing separate from the server's copy, so a
 
 Adding a reference returns 201 with the new entry; removing one returns 204 with no body. Neither returns the whole book, so the outline page fetches it again.
 
-### Missing topic on insert: 404
+### Missing resources: 404
 
 The contract treats anything missing as 404.
 
 ### Status codes
 
-I used ASP.NET Core's built-in `Results` helpers, which made most codes unambiguous. The only real choices were 409 for edit conflicts and 404 for things that were missing, explained above.
+I used ASP.NET Core's built-in `Results` helpers, which made most codes unambiguous. The only real choices were 409 for edit conflicts and 404 for things that were missing, explained above. Every error comes back in the same Problem Details shape, and validation errors list messages by field name so the editor can show each one next to its input.
 
 ## 3. Removing a reference with indented entries
 
-Removing a reference removes that occurrence only; the Topic is untouched. Entries indented beneath it move up one level and positions close up:
+Removing a reference removes that occurrence only; the topic is untouched. Entries indented beneath it move up one level and positions close up:
 
 ```text
 Before            After removing B
@@ -73,13 +73,13 @@ Before            After removing B
 
 ## 4. How to implement deleting a Topic that Books still reference
 
-The main edge case is that the API should refuse the delete while any book still references it, since this would create a null reference. I would make the API answer 409 Conflict if this happens and list the references so they can be manually removed first. If nothing points to it, it would delete it cleanly.
+The main edge case is that the API should refuse the delete while any book still references it, since the book would be left pointing at a topic that no longer exists. I would make the API answer 409 Conflict if this happens and list the references so they can be manually removed first. If nothing points to it, it would delete it cleanly.
 
 ## 5. Unfinished work and what I would do with more time
 
-I left out the stretch goals from the brief, so I would probably do those first.
+I left out the stretch goals from the brief (deleting topics, moving references, an unsaved-changes warning, frontend tests and a one-command start), so I would probably do those first.
 
-With more time I would also want to move to a better storage system like SQLite. I would target the concurrency issues and would look into using database transactions instead of one global lock. I would additionally develop more tests so I could have a better idea of the repository health, and ideally set up an environment for test-driven development.
+With more time I would also want to move to a better storage system like SQLite. I would target the concurrency issues, starting with giving books a version number like topics have, so adding a reference can't land in an outline the author hasn't seen. I would also look into using database transactions instead of one global lock. I would additionally develop more tests so I could have a better idea of the repository health, and ideally set up an environment for test-driven development.
 
 ---
 
@@ -115,6 +115,6 @@ cd backend && dotnet test                     # 14 xUnit API tests
 cd frontend && npm run lint && npm run build  # oxlint; tsc + vite build
 ```
 
-The API tests (`WebApplicationFactory`) cover field validation, stale updates (409, no change), version increments, ordered contents with live titles, unknown Topic (404), invalid levels (400, outline unchanged), descendant promotion on delete, and usage counts including repeats in one Book. No frontend tests.
+The API tests (`WebApplicationFactory`) cover field validation, stale updates (409, no change), version increments, ordered contents with live titles, unknown topic (404), invalid levels (400, outline unchanged), descendant promotion on delete, and usage counts including repeats in one book. No frontend tests.
 
 Used A.I tooling where appropriate including Cursor for development, worktrees for parallelization, and GitHub Issues for coordination.
